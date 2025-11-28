@@ -1,14 +1,16 @@
-import { GoogleGenAI, Type, Schema, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { DreamAnalysis, ImageResolution } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get AI instance with current key
+// This is crucial because process.env.API_KEY might be updated by the user via window.aistudio
+const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
  * Analyzes the audio blob: transcribes it and provides a Jungian interpretation + image prompt.
  * Uses gemini-2.5-flash for speed and multimodal capability.
  */
 export const analyzeDreamAudio = async (base64Audio: string, mimeType: string): Promise<DreamAnalysis> => {
+  const ai = getAiClient();
   
   const analysisSchema: Schema = {
     type: Type.OBJECT,
@@ -69,6 +71,7 @@ export const analyzeDreamAudio = async (base64Audio: string, mimeType: string): 
  * Supports resolution selection.
  */
 export const generateDreamImage = async (prompt: string, resolution: ImageResolution): Promise<string> => {
+  const ai = getAiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-image-preview',
     contents: {
@@ -101,6 +104,7 @@ export const generateDreamImage = async (prompt: string, resolution: ImageResolu
  * Uses gemini-3-pro-preview.
  */
 export const createDreamChat = (dreamData: DreamAnalysis) => {
+  const ai = getAiClient();
   return ai.chats.create({
     model: 'gemini-3-pro-preview',
     config: {

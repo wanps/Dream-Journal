@@ -17,11 +17,40 @@ const DreamImageGen: React.FC<DreamImageGenProps> = ({ prompt }) => {
     setLoading(true);
     setError(null);
     try {
+      // Check for API Key permission for this model
+      // gemini-3-pro-image-preview requires a user-selected key
+      const win = window as any;
+      if (win.aistudio) {
+        const hasKey = await win.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+            await win.aistudio.openSelectKey();
+        }
+      }
+
       const url = await generateDreamImage(prompt, resolution);
       setImageUrl(url);
-    } catch (err) {
-      setError("生成失败，请重试。");
+    } catch (err: any) {
       console.error(err);
+      let errorMessage = "生成失败，请重试。";
+      
+      const errString = err.toString();
+      // Catch 403 or Permission Denied or "Requested entity was not found" (often key related)
+      if (errString.includes("Requested entity was not found") || errString.includes("permission denied") || errString.includes("403")) {
+         errorMessage = "需要配置付费 API 密钥权限。";
+         
+         // Automatically prompt to select key again if permission failed
+         const win = window as any;
+         if (win.aistudio) {
+           try {
+             await win.aistudio.openSelectKey();
+             errorMessage = "API 密钥已更新，请再次点击生成。";
+           } catch (e) {
+             // user cancelled or failed
+           }
+         }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,6 +103,7 @@ const DreamImageGen: React.FC<DreamImageGenProps> = ({ prompt }) => {
                 <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
              </div>
              <p className="text-indigo-300 text-sm animate-pulse">正在生成 {resolution} 图像...</p>
+             <p className="text-slate-500 text-xs">可能需要几十秒，请耐心等待</p>
           </div>
         ) : imageUrl ? (
           <div className="group relative w-full h-full">
@@ -95,12 +125,21 @@ const DreamImageGen: React.FC<DreamImageGenProps> = ({ prompt }) => {
           <div className="text-center p-8 max-w-md">
             <p className="text-slate-400 mb-2">准备生成图像</p>
             <p className="text-slate-500 text-xs italic opacity-75">"{prompt}"</p>
+            {error && <p className="mt-2 text-xs text-slate-500">提示: 高清图像生成模型 (gemini-3-pro-image-preview) 需要绑定付费项目的 API 密钥</p>}
           </div>
         )}
         
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4">
-             <p className="text-red-400 text-center">{error}</p>
+             <div className="text-center">
+                <p className="text-red-400 mb-2">{error}</p>
+                <button 
+                  onClick={handleGenerate}
+                  className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-xs text-white rounded-md transition-colors"
+                >
+                  重试
+                </button>
+             </div>
           </div>
         )}
       </div>
