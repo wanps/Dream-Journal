@@ -1,0 +1,7 @@
+{
+  "name": "Oneiric Flow",
+  "description": "一个多模态梦境日志，支持语音转录、使用 Gemini 3 Pro Image 生成超现实主义可视化图像，并提供荣格心理学分析。",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
